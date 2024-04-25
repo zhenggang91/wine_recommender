@@ -14,7 +14,6 @@ import hmac
 
 from pathlib import Path
 from PIL import Image
-import pickle
 from openai import OpenAI
 import time
 import streamlit.components.v1 as components
