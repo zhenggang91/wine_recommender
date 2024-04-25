@@ -18,8 +18,8 @@ from openai import OpenAI
 import time
 import streamlit.components.v1 as components
 
-
-client = OpenAI(api_key='sk-proj-fGr5HQoXw2jkmdLEidfoT3BlbkFJzH11IuzE1dEAAzN0aVQE')
+api_key = st.secrets["api-keys"]["api_openai"]
+client = OpenAI(api_key= api_key)
 
 assistant_id = 'asst_xnVAoWK2M7sEgowyLZXsrpHN'
 
