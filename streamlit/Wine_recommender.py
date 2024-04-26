@@ -26,6 +26,40 @@ assistant_id = 'asst_xnVAoWK2M7sEgowyLZXsrpHN'
 
 #### External resources loading ###
 
+pinot_noir_file = client.files.create(
+    file=open("pinot_noir.html", "rb"),
+    purpose='assistants'
+)
+
+wine_basic_file = client.files.create(
+    file=open("wine_basic.html", "rb"),
+    purpose='assistants'
+)
+
+wine_making_file = client.files.create(
+    file=open("wine_making.html", "rb"),
+    purpose='assistants'
+)
+
+wine_pairing_file = client.files.create(
+    file=open("wine_pairing.html", "rb"),
+    purpose='assistants'
+)
+
+wine_storage_file = client.files.create(
+    file=open("wine_storage.html", "rb"),
+    purpose='assistants'
+)
+
+wine_tasting_file = client.files.create(
+    file=open("wine_tasting.html", "rb"),
+    purpose='assistants'
+)
+
+
+file_ids = [pinot_noir_file.id,wine_basic_file.id,wine_making_file.id,wine_pairing_file.id,wine_storage_file.id,wine_tasting_file.id]
+
+
 hh_favicon_path = Path(__file__).parents[1] / "streamlit/h365.png"
 hh_favicon = Image.open(hh_favicon_path)
 
@@ -111,8 +145,8 @@ st.sidebar.header(("Details"))
 st.sidebar.markdown((
     """
 There are three key components for this application:
-- Building a Recommender System using the SVD algorithm within the Surprise.
-- Generating Content through the OpenAI API.
+- Building a Recommender System using the SVD algorithm within Surprise library.
+- Generating Content and automated ChatBot through the OpenAI API. ChatBot obtains his wine knowledge from key wikipedia pages about wines. 
 - Implementing a Tableau Dashboard to enhance user experience with valuable features.
 
 """
@@ -163,7 +197,7 @@ if not check_password():
 
 #### Variable configuration ### 
 
-tab1, tab2 = st.tabs(["Your Wine Sommelier","Do you know?"])
+tab1, tab2 = st.tabs(["Your Wine Sommelier","Chat with me!"])
 
 user_id = st.session_state["username"]
 
@@ -391,8 +425,133 @@ with tab1:
         elif user_id is not None:
                 st.write(f"Please provide a valid user ID. If you are a new user, please return to the main page.")
 
+# with tab2:
+#     st.subheader(f"Ask me anything about wines!")
+#     st.write("Here, you can ask me anything about wines and I will try my best to answer")
+
+#     if prompt := st.chat_input(f'What would you like to know?'):
+        
+#         # Create a status indicator to show the user the assistant is working
+#         with st.status("Wait uh... ...", expanded=False) as status_box:
+
+#             # st.session_state.messages.append({'role': 'user', 'content': prompt})
+#             with st.chat_message('user'):
+#                 st.markdown(prompt)
+
+#             with st.chat_message('assistant'):
+#                 message_placeholder = st.empty()
+#                 full_response = ''
+                
+#                 thread = client.beta.threads.create(
+#                         messages=[
+#                             {
+#                                 "role": "user",
+#                                 "content": f"Answer this question '{prompt}' as you would to a customer in a supermarket as a wine sommelier, using only the information about wine in the documents provided. Keep your response to 50 words. If the question is not about wine, say that you do not know. Do not mention about the existence of the files uploaded.",
+#                                 "attachments": [
+#                                     { "file_id": file_ids[0], 
+#                                      "tools": [{"type": "file_search"}] 
+#                                     },
+#                                     { "file_id": file_ids[1], 
+#                                      "tools": [{"type": "file_search"}] 
+#                                     },
+#                                     { "file_id": file_ids[2], 
+#                                      "tools": [{"type": "file_search"}] 
+#                                     },
+#                                     { "file_id": file_ids[3], 
+#                                      "tools": [{"type": "file_search"}] 
+#                                     },
+#                                     { "file_id": file_ids[4], 
+#                                      "tools": [{"type": "file_search"}] 
+#                                     },
+#                                     { "file_id": file_ids[5], 
+#                                      "tools": [{"type": "file_search"}] 
+#                                     }
+#                                     ]
+#                             }
+#                         ]
+#                         )
+
+#                 # Create a run with the new thread
+#                 run = client.beta.threads.runs.create(
+#                     thread_id=thread.id,
+#                     assistant_id=assistant_id,
+#                 )
+
+#                 # Check periodically whether the run is done, and update the status
+#                 while run.status != "completed":
+#                     time.sleep(5)
+#                     status_box.update(label=f"{run.status}...", state="running")
+#                     run = client.beta.threads.runs.retrieve(
+#                         thread_id=thread.id, run_id=run.id
+#                     )
+
+#                 # Once the run is complete, update the status box and show the content
+#                 status_box.update(label="Hope this is helpful!", state="complete", expanded=True)
+#                 messages = client.beta.threads.messages.list(
+#                     thread_id=thread.id
+#                 )
+
+#                 pattern = r'(【\d+†source】|【\d+:\d+†source】)'
+#                 cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
+#                 st.markdown(cleaned_text)
+
 with tab2:
-    st.write(f"Work In Progress")
+    st.title("💬 Ask me anything about wine!")
+    st.caption("🚀 A streamlit chatbot powered by OpenAI LLM")
 
+    with st.status("Chat with our RoboSommelier", expanded=True) as status_box:
 
+        if "messages" not in st.session_state:
+            st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
 
+        for msg in st.session_state.messages:
+            st.chat_message(msg["role"]).write(msg["content"])
+
+        if prompt := st.chat_input():
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.chat_message("user").write(prompt)
+            thread = client.beta.threads.create(
+                            messages=[
+                                {
+                                    "role": "user",
+                                    "content": f"Answer this question '{prompt}' as you would to a customer in a supermarket as a wine sommelier, using only the information about wine in the documents provided. Keep your response to 50 words. If the question is not about wine, say that you do not know. Do not mention about the existence of the files uploaded.",
+                                    "attachments": [
+                                        { "file_id": file_ids[0], 
+                                        "tools": [{"type": "file_search"}] 
+                                        },
+                                        { "file_id": file_ids[1], 
+                                        "tools": [{"type": "file_search"}] 
+                                        },
+                                        { "file_id": file_ids[2], 
+                                        "tools": [{"type": "file_search"}] 
+                                        },
+                                        { "file_id": file_ids[3], 
+                                        "tools": [{"type": "file_search"}] 
+                                        },
+                                        { "file_id": file_ids[4], 
+                                        "tools": [{"type": "file_search"}] 
+                                        },
+                                        { "file_id": file_ids[5], 
+                                        "tools": [{"type": "file_search"}] 
+                                        }
+                                        ]
+                                }
+                            ]
+                            )
+            
+            run = client.beta.threads.runs.create(thread_id=thread.id,assistant_id=assistant_id,)
+            status_box.update(label="Thank you for being patient with me", state="running")
+        
+            while run.status != "completed":
+                time.sleep(3)
+                run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+
+            messages = client.beta.threads.messages.list(thread_id=thread.id)
+            status_box.update(label="Hope this is helpful!", state="complete", expanded=True)
+
+            pattern = r'(【\d+†source】|【\d+:\d+†source】)'
+            cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
+
+            msg = cleaned_text
+            st.session_state.messages.append({"role": "assistant", "content": msg})
+            st.chat_message("assistant").write(msg)
