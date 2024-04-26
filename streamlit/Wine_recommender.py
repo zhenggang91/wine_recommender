@@ -124,7 +124,7 @@ st.image(hh_image, use_column_width=True)
 # Sidebar
 st.sidebar.header(("About"))
 st.sidebar.markdown((
-    "This wine recommender was created as part of my graduation capstone project for General Assembly DSI-SG-42. It's important to note that this application is not affiliated with NTUC Fairprice."
+    "This wine recommender was created as part of my graduation capstone project. It's important to note that this application is not affiliated with NTUC Fairprice."
 ))
 
 st.sidebar.header(("Instructions"))
