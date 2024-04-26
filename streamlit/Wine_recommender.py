@@ -18,6 +18,7 @@ from openai import OpenAI
 import time
 import streamlit.components.v1 as components
 
+
 api_key = st.secrets["api-keys"]["api_openai"]
 client = OpenAI(api_key= api_key)
 
@@ -203,6 +204,8 @@ with tab1:
                 option_selected = st.radio(f"Select an option:", options[i], key=f"question_{i}")
                 index = options[i].index(option_selected)
                 result_counts[str(index)] += 1
+            
+            user_cuisine = st.selectbox("What kind of dish are you asking about pairing with?", ["Singapore", "Italian","Chinese", "Mexican", "Indian", "Japanese", "Thai", "French", "Mediterranean", "American", "Spanish", "Korean", "Greek", "Lebanese", "Vietnamese", "Brazilian"])
 
             st.divider()
             submit1 = st.form_submit_button('Submit') 
@@ -234,7 +237,7 @@ with tab1:
                         client.beta.assistants.update(assistant.id, description=assistant.description)
                         thread = client.beta.threads.create()
                         message = client.beta.threads.messages.create(thread_id=thread.id,role="user",
-                                                                    content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to Singapore cuisine context.")
+                                                                    content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to {user_cuisine} cuisine context.")
                         run = client.beta.threads.runs.create_and_poll(thread_id=thread.id,assistant_id=assistant.id,instructions="Replies should be in point form. Two points under each wine recommendation. These two points are 'description' and 'food pairing'. fFood pairing should just be itemised response and concise. ")
                         if run.status == 'completed': 
                             messages = client.beta.threads.messages.list(
@@ -268,7 +271,7 @@ with tab1:
                         client.beta.assistants.update(assistant.id, description=assistant.description)
                         thread = client.beta.threads.create()
                         message = client.beta.threads.messages.create(thread_id=thread.id,role="user",
-                                                                    content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to Singapore cuisine context.")
+                                                                    content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to {user_cuisine} cuisine context.")
                         run = client.beta.threads.runs.create_and_poll(thread_id=thread.id,assistant_id=assistant.id,instructions="Replies should be in point form. Two points under each wine recommendation. These two points are 'description' and 'food pairing'. Food pairing should just be itemised response and concise. ")
                         if run.status == 'completed': 
                             messages = client.beta.threads.messages.list(
@@ -300,7 +303,7 @@ with tab1:
                         client.beta.assistants.update(assistant.id, description=assistant.description)
                         thread = client.beta.threads.create()
                         message = client.beta.threads.messages.create(thread_id=thread.id,role="user",
-                                                                    content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to Singapore cuisine context.")
+                                                                    content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to {user_cuisine} cuisine context.")
                         run = client.beta.threads.runs.create_and_poll(thread_id=thread.id,assistant_id=assistant.id,instructions="Replies should be in point form. Two points under each wine recommendation. These two points are 'description' and 'food pairing'. Food pairing should just be itemised response and concise. ")
                         if run.status == 'completed': 
                             messages = client.beta.threads.messages.list(
@@ -319,7 +322,7 @@ with tab1:
         if str(user_new_id) in colab_rec.columns:
             st.write(f'Welcome back Jia Sheng! For me to provide you with better recommendations, can you let me know if you are feeling a red or white today?')
             user_interest = st.selectbox("Red or White?", ["","Red", "White"])
-            
+            user_cuisine = st.selectbox("What kind of dish are you asking about pairing with?", ["Singapore", "Italian","Chinese", "Mexican", "Indian", "Japanese", "Thai", "French", "Mediterranean", "American", "Spanish", "Korean", "Greek", "Lebanese", "Vietnamese", "Brazilian"])
             if user_interest == "Red":
                 st.write(f"Good choice for today's weather. We think that you will like the below offerings available in your nearest fairprice outlet.")
                 user = {
@@ -341,7 +344,7 @@ with tab1:
                     client.beta.assistants.update(assistant.id, description=assistant.description)
                     thread = client.beta.threads.create()
                     message = client.beta.threads.messages.create(thread_id=thread.id,role="user",
-                                                                content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to Singapore cuisine context.")
+                                                                content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to {user_cuisine} cuisine context.")
                     run = client.beta.threads.runs.create_and_poll(thread_id=thread.id,assistant_id=assistant.id,instructions="Replies should be in point form. Two points under each wine recommendation. These two points are 'description' and 'food pairing'. Food pairing should just be itemised response and concise. ")
                     if run.status == 'completed': 
                         messages = client.beta.threads.messages.list(
@@ -373,7 +376,7 @@ with tab1:
                     client.beta.assistants.update(assistant.id, description=assistant.description)
                     thread = client.beta.threads.create()
                     message = client.beta.threads.messages.create(thread_id=thread.id,role="user",
-                                                                content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to Singapore cuisine context.")
+                                                                content= f"please give me a brief description of each wine mentioned here {recommend} as well as the food pairing that goes with it in a short and concise manner. Food pairings to be related to {user_cuisine} cuisine context.")
                     run = client.beta.threads.runs.create_and_poll(thread_id=thread.id,assistant_id=assistant.id,instructions="Replies should be in point form. Two points under each wine recommendation. These two points are 'description' and 'food pairing'. Food pairing should just be itemised response and concise.  ")
                     if run.status == 'completed': 
                         messages = client.beta.threads.messages.list(
