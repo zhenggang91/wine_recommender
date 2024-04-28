@@ -26,7 +26,7 @@ assistant_id = 'asst_xnVAoWK2M7sEgowyLZXsrpHN'
 hh_favicon_path = Path(__file__).parents[1] / "streamlit/h365.png"
 hh_favicon = Image.open(hh_favicon_path)
 
-hh_path = Path(__file__).parents[1] / "streamlit/banner.jpg"
+hh_path = Path(__file__).parents[1] / "streamlit/new.png"
 hh_image = Image.open(hh_path)
 
 pc_path = Path(__file__).parents[1] / "streamlit/prediction_collaborative.csv"
