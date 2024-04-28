@@ -18,7 +18,6 @@ from openai import OpenAI
 import time
 import streamlit.components.v1 as components
 
-
 api_key = st.secrets["api-keys"]["api_openai"]
 client = OpenAI(api_key= api_key)
 
@@ -32,7 +31,6 @@ hh_image = Image.open(hh_path)
 
 pc_path = Path(__file__).parents[1] / "streamlit/prediction_collaborative.csv"
 colab_rec = pd.read_csv(pc_path)
-
 
 content_path = Path(__file__).parents[1] / "streamlit/content_results2.csv"
 content_rec = pd.read_csv(content_path)
@@ -70,6 +68,51 @@ def recommend_me_wines(user):
         print("please provide valid user id")
 
 
+def is_wine_related(prompt):
+    # Construct the classification prompt
+    classification_prompt = f"Answer with 'Yes' or 'No' only. Only provide one word response. Is the text related to information provided in vector store?: \n{prompt}"
+    thread = client.beta.threads.create(
+                            messages=[
+                                {
+                                    "role": "user",
+                                    "content": classification_prompt,
+                                }
+                            ]
+                            )
+    run = client.beta.threads.runs.create(thread_id=thread.id,assistant_id=assistant_id,temperature = 0, top_p =0 )
+    # Create a completion with OpenAI's GPT model
+    while run.status != "completed":
+                time.sleep(3)
+                run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+    messages = client.beta.threads.messages.list(thread_id=thread.id)
+    pattern = r'(【\d+†source】|【\d+:\d+†source】)'
+    cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
+    
+    return cleaned_text.rstrip(".").strip().lower()
+
+def is_logical(prompt):
+    # Construct the classification prompt
+    classification_prompt = f"Answer with 'Yes' or 'No' only. Only provide one word response. Is the text provided logical?: \n{prompt}"
+    thread = client.beta.threads.create(
+                            messages=[
+                                {
+                                    "role": "user",
+                                    "content": classification_prompt,
+                                }
+                            ]
+                            )
+    run = client.beta.threads.runs.create(thread_id=thread.id,assistant_id=assistant_id,temperature = 0, top_p =0 )
+    # Create a completion with OpenAI's GPT model
+    while run.status != "completed":
+                time.sleep(3)
+                run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+    messages = client.beta.threads.messages.list(thread_id=thread.id)
+    pattern = r'(【\d+†source】|【\d+:\d+†source】)'
+    cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
+    
+    return cleaned_text.rstrip(".").strip().lower()
+
+
 ###### Streamlit app page layout and data logic -- start here ###### 
 st.set_page_config(page_title='NTUC Fairprice Wine Sommelier', 
                    page_icon=hh_favicon, 
@@ -94,24 +137,7 @@ st.sidebar.markdown((
 st.sidebar.header(("Instructions"))
 st.sidebar.markdown((
     """
-To test out the flow for an existing user (collaborative filtering):
-- Username: jia_sheng
-- Password: zhenggangisawesome
-
-To test out the flow for a new user (content based cold-start):
-- Username: jia_en
-- Password: zhenggangisawesome
-
-"""
-))
-
-st.sidebar.header(("Details"))
-st.sidebar.markdown((
-    """
-There are three key components for this application:
-- Building a Recommender System using the SVD algorithm within Surprise library.
-- Generating Content and automated ChatBot through the OpenAI API. ChatBot obtains his wine knowledge from key wikipedia pages about wines. 
-- Implementing a Tableau Dashboard to enhance user experience with valuable features.
+Go to the login page to test out as an "Existing User" or "New User"
 
 """
 ))
@@ -121,49 +147,10 @@ st.sidebar.markdown((
     "[Linkedin](https://www.linkedin.com/in/ziggy-lim/)"
 ))
 
-def check_password():
-    """Returns `True` if the user had a correct password."""
-    
-    def login_form():
-        """Form with widgets to collect user information"""
-        with st.form("Credentials"):
-            st.text_input("Username", key="username", placeholder = "jia_sheng")
-            st.text_input("Password", type="password", key="password", placeholder = "zhenggangisawesome")
-            st.form_submit_button("Log in", on_click=password_entered)
+tab0, tab1, tab2 = st.tabs(["Login","Your Wine Sommelier","Chat with me!"])
 
-    def password_entered():
-        """Checks whether a password entered by the user is correct."""
-        if st.session_state["username"] in st.secrets[
-            "passwords"
-        ] and hmac.compare_digest(
-            st.session_state["password"],
-            st.secrets.passwords[st.session_state["username"]],
-        ):
-            st.session_state["password_correct"] = True
-            # del st.session_state["password"]  # Don't store the username or password.
-            # del st.session_state["username"]
-        else:
-            st.session_state["password_correct"] = False
-
-    # Return True if the username + password is validated.
-    if st.session_state.get("password_correct", False):
-        return True
-
-    # Show inputs for username + password.
-    login_form()
-    if "password_correct" in st.session_state:
-        st.error("😕 User not known or password incorrect. Please contact customer support.")
-    return False
-
-if not check_password():
-    # st.markdown(st.session_state["username"])
-    st.stop()
-
-#### Variable configuration ### 
-
-tab1, tab2 = st.tabs(["Your Wine Sommelier","Chat with me!"])
-
-user_id = st.session_state["username"]
+with tab0:
+    user_id = st.selectbox("Testing out as?", ["","Existing User", "New User"])
 
 with tab1:
     
@@ -171,8 +158,7 @@ with tab1:
     st.subheader("Find out new wine recommendations in our store")
 
     # Check if an option is selected
-    if user_id == "jia_en":
-        st.session_state["username"] = "jia_en"
+    if user_id == "New User":
         st.write(f'I see that you are here for the first time. Lets make your first purchase!')
         st.write(f'Fill up the below onboarding form for us to get to know you better and kickstart you on your wine journey')
         with st.form("Wine Preference Quiz"):
@@ -241,7 +227,10 @@ with tab1:
                             messages = client.beta.threads.messages.list(
                                 thread_id=thread.id
                             )
-                            st.markdown(messages.data[0].content[0].text.value)
+                            pattern = r'(【\d+†source】|【\d+:\d+†source】)'
+                            cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
+                            msg = cleaned_text
+                            st.markdown(msg)
                         else:
                             print(run.status)
                     st.success("Hope you enjoy our recommendation!")
@@ -275,7 +264,10 @@ with tab1:
                             messages = client.beta.threads.messages.list(
                                 thread_id=thread.id
                             )
-                            st.markdown(messages.data[0].content[0].text.value)
+                            pattern = r'(【\d+†source】|【\d+:\d+†source】)'
+                            cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
+                            msg = cleaned_text
+                            st.markdown(msg)
                         else:
                             print(run.status)
                     st.success("Hope you enjoy our recommendation!")
@@ -307,14 +299,16 @@ with tab1:
                             messages = client.beta.threads.messages.list(
                                 thread_id=thread.id
                             )
-                            st.markdown(messages.data[0].content[0].text.value)
+                            pattern = r'(【\d+†source】|【\d+:\d+†source】)'
+                            cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
+                            msg = cleaned_text
+                            st.markdown(msg)
                         else:
                             print(run.status)
                     st.success("Hope you enjoy our recommendation!")
                     st.text("")                   
 
-    elif user_id == "jia_sheng":
-        st.session_state["username"] = "jia_sheng"
+    elif user_id == "Existing User":
         user_new_id = 1356810
 
         if str(user_new_id) in colab_rec.columns:
@@ -348,7 +342,10 @@ with tab1:
                         messages = client.beta.threads.messages.list(
                             thread_id=thread.id
                         )
-                        st.markdown(messages.data[0].content[0].text.value)
+                        pattern = r'(【\d+†source】|【\d+:\d+†source】)'
+                        cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
+                        msg = cleaned_text
+                        st.markdown(msg)
                     else:
                         print(run.status)
                 st.success("Hope you enjoy our recommendation!")
@@ -380,7 +377,11 @@ with tab1:
                         messages = client.beta.threads.messages.list(
                             thread_id=thread.id
                         )
-                        st.markdown(messages.data[0].content[0].text.value)
+
+                        pattern = r'(【\d+†source】|【\d+:\d+†source】)'
+                        cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
+                        msg = cleaned_text
+                        st.markdown(msg)
                     else:
                         print(run.status)
                 st.success("Hope you enjoy our recommendation!")
@@ -409,7 +410,7 @@ with tab2:
                             messages=[
                                 {
                                     "role": "user",
-                                    "content": f"Answer this question '{prompt}' as you would to a customer in a supermarket as a wine sommelier, using only the information about wine in the documents provided. Keep your response to 50 words. If the question is not about wine, say that you do not know. Do not mention about the existence of the files uploaded.",
+                                    "content": f"Answer this question '{prompt}' as you would to a customer in a supermarket as a wine sommelier, using only the information about wine in the documents provided. Keep your response to 50 words. If the question is not about wine, say that you do not know. Do not mention about the existence of the files uploaded. Refer to the information provided as your training as a sommelier",
                                 }
                             ]
                             )
@@ -427,6 +428,27 @@ with tab2:
             pattern = r'(【\d+†source】|【\d+:\d+†source】)'
             cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
 
-            msg = cleaned_text
-            st.session_state.messages.append({"role": "assistant", "content": msg})
-            st.chat_message("assistant").write(msg)
+            # moderation block
+
+            response = client.moderations.create(input=prompt)
+            output = response.results[0]
+
+            if output.flagged != True: 
+                    if is_wine_related(prompt) == "yes":
+                        if is_logical(cleaned_text) == "yes":
+                            msg = cleaned_text
+                            st.session_state.messages.append({"role": "assistant", "content": msg})
+                            st.chat_message("assistant").write(msg)
+                        else:
+                            msg = "Seems like I am unable to provide you with a statisfactory response based on my prior training. Please ask me another question."
+                            st.session_state.messages.append({"role": "assistant", "content": msg})
+                            st.chat_message("assistant").write(msg)
+
+                    else:
+                        msg = "I am only programmed to answer wine related questions. Please try again."
+                        st.session_state.messages.append({"role": "assistant", "content": msg})
+                        st.chat_message("assistant").write(msg)
+            else:
+                msg = "It looks like your message was flagged for offensive content. Could you please try asking again?"
+                st.session_state.messages.append({"role": "assistant", "content": msg})
+                st.chat_message("assistant").write(msg)
