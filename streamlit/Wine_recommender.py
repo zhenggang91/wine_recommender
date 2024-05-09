@@ -23,16 +23,16 @@ client = OpenAI(api_key= api_key)
 
 assistant_id = 'asst_xnVAoWK2M7sEgowyLZXsrpHN'
 
-hh_favicon_path = Path(__file__).parents[1] / "streamlit/h365.png"
+hh_favicon_path = Path(__file__).parents[1] / "streamlit/fairpricelogo.png"
 hh_favicon = Image.open(hh_favicon_path)
 
-hh_path = Path(__file__).parents[1] / "streamlit/new.png"
+hh_path = Path(__file__).parents[1] / "streamlit/banner.jpg"
 hh_image = Image.open(hh_path)
 
 pc_path = Path(__file__).parents[1] / "streamlit/prediction_collaborative.csv"
 colab_rec = pd.read_csv(pc_path)
 
-content_path = Path(__file__).parents[1] / "streamlit/content_results2.csv"
+content_path = Path(__file__).parents[1] / "streamlit/content_based.csv"
 content_rec = pd.read_csv(content_path)
 
 wine_master = Path(__file__).parents[1] / "streamlit/wine_dictionary.csv"
@@ -399,31 +399,43 @@ with tab2:
 
         if "messages" not in st.session_state:
             st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
-
+        
+        if "thread_id" not in st.session_state:
+            st.session_state["thread_id"] = None
+        
         for msg in st.session_state.messages:
             st.chat_message(msg["role"]).write(msg["content"])
 
         if prompt := st.chat_input():
+            status_box.update(label="Thank you for being patient with me", state="running")
             st.session_state.messages.append({"role": "user", "content": prompt})
             st.chat_message("user").write(prompt)
-            thread = client.beta.threads.create(
-                            messages=[
-                                {
-                                    "role": "user",
-                                    "content": f"Answer this question '{prompt}' as you would to a customer in a supermarket as a wine sommelier, using only the information about wine in the documents provided. Keep your response to 50 words. If the question is not about wine, say that you do not know. Do not mention about the existence of the files uploaded. Refer to the information provided as your training as a sommelier",
-                                }
-                            ]
-                            )
             
-            run = client.beta.threads.runs.create(thread_id=thread.id,assistant_id=assistant_id,)
-            status_box.update(label="Thank you for being patient with me", state="running")
-        
+            if st.session_state["thread_id"] is None:
+                thread = client.beta.threads.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": f"Answer this question '{prompt}' as you would to a customer in a supermarket as a wine sommelier, using only the information about wine in the documents provided. Keep your response to 50 words. If the question is not about wine, say that you do not know. Do not mention about the existence of the files uploaded. Refer to the information provided as your training as a sommelier",
+                        }
+                    ]
+                )
+                st.session_state["thread_id"] = thread.id
+            else:
+                message = client.beta.threads.messages.create(
+                    thread_id=st.session_state["thread_id"],
+                    role="user",
+                    content=f"Answer this question '{prompt}' as you would to a customer in a supermarket as a wine sommelier, using only the information about wine in the documents provided. Keep your response to 50 words. If the question is not about wine, say that you do not know. Do not mention about the existence of the files uploaded. Refer to the information provided as your training as a sommelier and in relation to our previous conversation in this thread."
+                    )
+
+            # Run the thread using the stored thread ID
+            run = client.beta.threads.runs.create(thread_id=st.session_state["thread_id"], assistant_id=assistant_id)
+                    
             while run.status != "completed":
                 time.sleep(3)
-                run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+                run = client.beta.threads.runs.retrieve(thread_id=st.session_state["thread_id"], run_id=run.id)
 
-            messages = client.beta.threads.messages.list(thread_id=thread.id)
-            status_box.update(label="Hope this is helpful!", state="complete", expanded=True)
+            messages = client.beta.threads.messages.list(thread_id=st.session_state["thread_id"])
 
             pattern = r'(【\d+†source】|【\d+:\d+†source】)'
             cleaned_text = re.sub(pattern, '', messages.data[0].content[0].text.value)
@@ -435,20 +447,29 @@ with tab2:
 
             if output.flagged != True: 
                     if is_wine_related(prompt) == "yes":
-                        if is_logical(cleaned_text) == "yes":
+                        # if is_logical(cleaned_text) == "yes":
+                        if 1 == 1:
                             msg = cleaned_text
                             st.session_state.messages.append({"role": "assistant", "content": msg})
                             st.chat_message("assistant").write(msg)
+                            status_box.update(label="Hope this is helpful!", state="complete", expanded=True)
                         else:
                             msg = "Seems like I am unable to provide you with a statisfactory response based on my prior training. Please ask me another question."
                             st.session_state.messages.append({"role": "assistant", "content": msg})
                             st.chat_message("assistant").write(msg)
+                            status_box.update(label="Hope this is helpful!", state="complete", expanded=True)
 
                     else:
                         msg = "I am only programmed to answer wine related questions. Please try again."
                         st.session_state.messages.append({"role": "assistant", "content": msg})
                         st.chat_message("assistant").write(msg)
+                        status_box.update(label="Hope this is helpful!", state="complete", expanded=True)
             else:
                 msg = "It looks like your message was flagged for offensive content. Could you please try asking again?"
                 st.session_state.messages.append({"role": "assistant", "content": msg})
                 st.chat_message("assistant").write(msg)
+                status_box.update(label="Hope this is helpful!", state="complete", expanded=True)
+            
+            
+
+        
