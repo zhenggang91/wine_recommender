@@ -126,7 +126,7 @@ st.set_page_config(page_title='NTUC Fairprice Wine Sommelier',
                    })
 
 
-st.image(hh_image, use_column_width=True)
+st.image(hh_image, width=500)
 
 # Sidebar
 st.sidebar.header(("About"))
